@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeArena | Competitive Coding Battles</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-panel: #1e293b;
+            --bg-input: #334155;
+            --accent-primary: #3b82f6;
+            --accent-secondary: #8b5cf6;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #475569;
+            --font-mono: 'Courier New', Courier, monospace;
+            --font-sans: system-ui, -apple-system, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- Utilities --- */
+        .hidden { display: none !important; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-2 { gap: 0.5rem; }
+        .gap-4 { gap: 1rem; }
+        .p-4 { padding: 1rem; }
+        .text-sm { font-size: 0.875rem; }
+        .text-xl { font-size: 1.25rem; font-weight: bold; }
+        .text-success { color: var(--success); }
+        .text-danger { color: var(--danger); }
+        
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+        button:hover { opacity: 0.9; }
+        .btn-primary { background: var(--accent-primary); color: white; }
+        .btn-secondary { background: var(--bg-input); color: var(--text-main); }
+        .btn-success { background: var(--success); color: white; }
+        
+        input {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: white;
+            padding: 10px;
+            border-radius: 6px;
+            outline: none;
+        }
+        input:focus { border-color: var(--accent-primary); }
+
+        /* --- Toast Notifications --- */
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .toast {
+            background: var(--bg-panel);
+            border-left: 4px solid var(--accent-primary);
+            padding: 15px 20px;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s ease-out;
+            min-width: 250px;
+        }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+        /* --- Auth Screen --- */
+        #auth-view {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+        }
+        .auth-card {
+            background: var(--bg-panel);
+            padding: 2rem;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        .auth-card h2 { margin-bottom: 1.5rem; text-align: center; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; color: var(--text-muted); }
+        .form-group input { width: 100%; }
+
+        /* --- Dashboard --- */
+        #dashboard-view {
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .room-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        .room-card {
+            background: var(--bg-panel);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        .room-meta { display: flex; justify-content: space-between; margin-top: 1rem; color: var(--text-muted); font-size: 0.9rem; }
+
+        /* --- Arena (Main Game) --- */
+        #arena-view {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        header {
+            background: var(--bg-panel);
+            padding: 0 1rem;
+            height: 60px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .arena-main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Left Panel: Problem & Editor */
+        .left-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border);
+            min-width: 0;
+        }
+        
+        .problem-split {
+            height: 40%;
+            display: flex;
+            flex-direction: column;
+            border-bottom: 1px solid var(--border);
+        }
+        .problem-content {
+            padding: 1.5rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .problem-content h3 { color: var(--accent-primary); margin-bottom: 0.5rem; }
+        .problem-content p { margin-bottom: 1rem; line-height: 1.6; }
+        .problem-content pre { background: #000; padding: 10px; border-radius: 4px; overflow-x: auto; }
+
+        .editor-container {
+            height: 60%;
+            display: flex;
+            flex-direction: column;
+            background: #0d1117;
+            position: relative;
+        }
+        
+        .editor-toolbar {
+            background: var(--bg-panel);
+            padding: 5px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .code-wrapper {
+            position: relative;
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Simple Line Numbers */
+        .line-numbers {
+            width: 40px;
+            background: #0d1117;
+            color: #485f70;
+            text-align: right;
+            padding: 10px 5px;
+            font-family: var(--font-mono);
+            font-size: 14px;
+            line-height: 1.5;
+            user-select: none;
+            border-right: 1px solid #30363d;
+        }
+
+        /* The actual editable area */
+        #code-editor {
+            flex: 1;
+            background: transparent;
+            color: #e6edf3;
+            border: none;
+            padding: 10px;
+            font-family: var(--font-mono);
+            font-size: 14px;
+            line-height: 1.5;
+            resize: none;
+            outline: none;
+            white-space: pre;
+            overflow: auto;
+            tab-size: 4;
+        }
+
+        /* Right Panel: Leaderboard & Chat */
+        .right-panel {
+            width: 350px;
+            background: var(--bg-panel);
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid var(--border);
+        }
+        
+        .panel-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-bottom: 1px solid var(--border);
+            min-height: 0; /* For nested scrolling */
+        }
+        
+        .panel-header {
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .leaderboard-list {
+            list-style: none;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .leaderboard-item {
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 0.9rem;
+        }
+        .leaderboard-item.me { background: rgba(59, 130, 246, 0.2); border-left: 3px solid var(--accent-primary); }
+        .rank { width: 30px; font-weight: bold; color: var(--text-muted); }
+        
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .message { font-size: 0.85rem; }
+        .message strong { color: var(--accent-secondary); }
+        .message.system { color: var(--text-muted); font-style: italic; }
+        
+        .chat-input {
+            padding: 10px;
+            background: var(--bg-panel);
+            display: flex;
+            gap: 5px;
+        }
+        .chat-input input { flex: 1; padding: 6px; }
+
+        /* --- Console/Output Modal --- */
+        #console-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 200px;
+            background: var(--bg-panel);
+            border-top: 1px solid var(--accent-primary);
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+        }
+        #console-overlay.open { transform: translateY(0); }
+        
+        .console-header {
+            padding: 5px 10px;
+            background: rgba(0,0,0,0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+        }
+        .console-body {
+            padding: 10px;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            overflow-y: auto;
+            color: #d1d5db;
+        }
+        .test-pass { color: var(--success); }
+        .test-fail { color: var(--danger); }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .arena-main { flex-direction: column; overflow-y: auto; }
+            .left-panel { height: auto; min-height: 800px; }
+            .right-panel { width: 100%; height: 400px; border-left: none; border-top: 1px solid var(--border); }
+            .problem-split { height: auto; flex: 1; }
+            .editor-container { height: 400px; flex: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toast-container"></div>
+
+    <!-- 1. Authentication View -->
+    <section id="auth-view">
+        <div class="auth-card">
+            <h2 style="color: var(--accent-primary);">CodeArena</h2>
+            <div id="auth-forms">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="username-input" placeholder="Enter your alias">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="email-input" placeholder="user@example.com">
+                </div>
+                <button class="btn-primary" style="width: 100%" onclick="app.login()">Enter Arena</button>
+                <p class="text-sm" style="text-align: center; margin-top: 15px; color: var(--text-muted);">
+                    By entering, you agree to the terms of battle.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 2. Dashboard View -->
+    <section id="dashboard-view" class="hidden">
+        <header style="margin-bottom: 2rem; background: transparent; border: none; padding: 0;">
+            <div class="text-xl">CodeArena <span style="font-weight: normal; color: var(--text-muted)">| Lobby</span></div>
+            <div class="flex items-center gap-4">
+                <span id="user-display" class="text-sm"></span>
+                <button class="btn-secondary" onclick="app.logout()">Logout</button>
+            </div>
+        </header>
+
+        <div class="flex justify-between items-center">
+            <h3>Active Rooms</h3>
+            <button class="btn-primary" onclick="app.createRoom()">+ Create Room</button>
+        </div>
+
+        <div id="room-list" class="room-grid">
+            <!-- Rooms injected via JS -->
+        </div>
+        
+        <div class="flex justify-center items-center p-4" style="height: 200px; border: 2px dashed var(--border); border-radius: 8px; margin-top: 20px;">
+            <div class="flex flex-col items-center gap-2">
+                <input type="text" id="join-code-input" placeholder="Enter Room Code" style="width: 200px; text-align: center;">
+                <button class="btn-secondary" onclick="app.joinRoom()">Join via Code</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. Arena View (Game) -->
+    <section id="arena-view" class="hidden">
+        <header>
+            <div class="flex items-center gap-4">
+                <span class="text-xl" style="font-weight: bold;">CodeArena</span>
+                <div class="btn-secondary text-sm" id="room-code-display">ROOM: ABCD</div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div style="text-align: right;">
+                    <div id="timer-display" style="font-family: var(--font-mono); color: var(--accent-primary); font-size: 1.2rem;">14:59</div>
+                </div>
+                <button class="btn-danger" onclick="app.leaveRoom()">Exit</button>
+            </div>
+        </header>
+
+        <div class="arena-main">
+            <!-- Left: Problem & Editor -->
+            <div class="left-panel">
+                <div class="problem-split">
+                    <div class="editor-toolbar">
+                        <span>Problem Description</span>
+                        <select id="language-selector" style="background: #334155; color: white; border: none; padding: 2px;">
+                            <option>JavaScript (Node.js)</option>
+                        </select>
+                    </div>
+                    <div class="problem-content" id="problem-description">
+                        <!-- Problem Text -->
+                    </div>
+                </div>
+
+                <div class="editor-container">
+                    <div class="editor-toolbar">
+                        <span style="font-size: 0.8rem; color: #aaa;">main.js</span>
+                        <div class="flex gap-2">
+                            <button class="btn-secondary text-sm" onclick="editor.runCode(false)">▶ Run</button>
+                            <button class="btn-success text-sm" onclick="editor.runCode(true)">⚡ Submit</button>
+                        </div>
+                    </div>
+                    <div class="code-wrapper">
+                        <div class="line-numbers" id="line-numbers">1</div>
+                        <textarea id="code-editor" spellcheck="false" oninput="editor.updateLineNumbers()" onkeydown="editor.handleTab(event)"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Leaderboard & Chat -->
+            <div class="right-panel">
+                <div class="panel-section">
+                    <div class="panel-header">
+                        <span>Leaderboard</span>
+                        <span class="text-sm" id="participant-count">0/20</span>
+                    </div>
+                    <ul class="leaderboard-list" id="leaderboard">
+                        <!-- Leaderboard Items -->
+                    </ul>
+                </div>
+                <div class="panel-section" style="flex: 1.2;">
+                    <div class="panel-header">Room Chat</div>
+                    <div class="chat-messages" id="chat-box">
+                        <div class="message system">Welcome to the room!</div>
+                    </div>
+                    <div class="chat-input">
+                        <input type="text" id="chat-msg" placeholder="Type a message..." onkeypress="if(event.key === 'Enter') app.sendChat()">
+                        <button class="btn-primary" style="padding: 5px 10px;" onclick="app.sendChat()">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Console Overlay -->
+        <div id="console-overlay">
+            <div class="console-header">
+                <span>Test Results & Console</span>
+                <button class="btn-secondary" style="padding: 2px 8px; font-size: 12px;" onclick="editor.toggleConsole()">Close</button>
+            </div>
+            <div class="console-body" id="console-output"></div>
+        </div>
+    </section>
+
+    <script>
+        // --- Data & State ---
+        const PROBLEMS = [
+            {
+                id: 1,
+                title: "Array Summation",
+                difficulty: "Easy",
+                description: "Write a function `solution(arr)` that takes an array of integers and returns the sum of all elements.",
+                template: "function solution(arr) {\n    // Write your code here\n    return 0;\n}",
+                cases: [
+                    { input: "[1, 2, 3]", expected: 6 },
+                    { input: "[-1, 5, 10]", expected: 14 },
+                    { input: "[0, 0, 0]", expected: 0 }
+                ]
+            },
+            {
+                id: 2,
+                title: "Palindrome Check",
+                difficulty: "Medium",
+                description: "Write a function `solution(str)` that returns `true` if the string is a palindrome, and `false` otherwise.",
+                template: "function solution(str) {\n    // Write your code here\n    return false;\n}",
+                cases: [
+                    { input: "\"racecar\"", expected: true },
+                    { input: "\"hello\"", expected: false },
+                    { input: "\"a\"", expected: true }
+                ]
+            },
+            {
+                id: 3,
+                title: "Max Difference",
+                difficulty: "Hard",
+                description: "Write a function `solution(arr)` that returns the maximum difference between any two elements in the array (largest - smallest).",
+                template: "function solution(arr) {\n    // Write your code here\n    return 0;\n}",
+                cases: [
+                    { input: "[2, 5, 1, 9]", expected: 8 },
+                    { input: "[10, 10, 10]", expected: 0 },
+                    { input: "[-5, -1, -10]", expected: 9 }
+                ]
+            }
+        ];
+
+        const BOTS = ["AlphaCoder", "ByteNinja", "NullPointer", "StackOverflow", "DevOps_Dan", "GitPushForce"];
+
+        const state = {
+            currentUser: null,
+            currentRoom: null,
+            participants: [], // { name, score, isBot, avatarColor }
+            chatMessages: [],
+            timer: null,
+            timeLeft: 900, // 15 mins
+            problem: null
+        };
+
+        // --- Core Application Logic ---
+        const app = {
+            init: () => {
+                // Check if simulated user exists in local storage
+                const storedUser = localStorage.getItem('ca_user');
+                if (storedUser) {
+                    state.currentUser = JSON.parse(storedUser);
+                    app.showDashboard();
+                }
+            },
+
+            login: () => {
+                const username = document.getElementById('username-input').value.trim();
+                const email = document.getElementById('email-input').value.trim();
+                
+                if (!username) {
+                    ui.toast("Please enter a username", "error");
+                    return;
+                }
+                
+                // Simulate Auth
+                state.currentUser = { 
+                    name: username, 
+                    email: email, 
+                    id: Date.now(),
+                    avatarColor: `hsl(${Math.random() * 360}, 70%, 50%)`
+                };
+                localStorage.setItem('ca_user', JSON.stringify(state.currentUser));
+                
+                ui.toast("Login Successful!", "success");
+                setTimeout(() => app.showDashboard(), 500);
+            },
+
+            logout: () => {
+                localStorage.removeItem('ca_user');
+                state.currentUser = null;
+                app.leaveRoom(); // Just in case
+                location.reload();
+            },
+
+            showDashboard: () => {
+                document.getElementById('auth-view').classList.add('hidden');
+                document.getElementById('dashboard-view').classList.remove('hidden');
+                document.getElementById('user-display').textContent = state.currentUser.name;
+                app.renderRoomList();
+            },
+
+            createRoom: () => {
+                const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+                const problem = PROBLEMS[Math.floor(Math.random() * PROBLEMS.length)];
+                
+                state.currentRoom = {
+                    code: roomCode,
+                    host: state.currentUser.name,
+                    problemId: problem.id,
+                    status: 'waiting'
+                };
+                
+                app.joinGameRoom(problem);
+            },
+
+            joinRoom: () => {
+                const code = document.getElementById('join-code-input').value.trim().toUpperCase();
+                if (!code) return ui.toast("Enter a room code", "error");
+                
+                // Simulate finding a room (just pick a random problem for simulation)
+                const problem = PROBLEMS[Math.floor(Math.random() * PROBLEMS.length)];
+                state.currentRoom = { code: code, host: "Someone Else", problemId: problem.id, status: 'active' };
+                app.joinGameRoom(problem);
+            },
+
+            renderRoomList: () => {
+                const container = document.getElementById('room-list');
+                container.innerHTML = '';
+                
+                // Simulate active rooms
+                for(let i=0; i<5; i++) {
+                    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+                    const count = Math.floor(Math.random() * 10) + 1;
+                    const prob = PROBLEMS[i % PROBLEMS.length].title;
+                    
+                    const div = document.createElement('div');
+                    div.className = 'room-card';
+                    div.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <span class="text-xl">${code}</span>
+                            <span class="text-success">● ${count}/20 Playing</span>
+                        </div>
+                        <div class="room-meta">
+                            <span>Problem: ${prob}</span>
+                            <span>Host: User_${Math.floor(Math.random()*100)}</span>
+                        </div>
+                        <button class="btn-primary" style="width:100%; margin-top:1rem;" onclick="app.joinRoomMock('${code}')">Spectate/Join</button>
+                    `;
+                    container.appendChild(div);
+                }
+            },
+            
+            joinRoomMock: (code) => {
+                 document.getElementById('join-code-input').value = code;
+                 app.joinRoom();
+            },
+
+            joinGameRoom: (problem) => {
+                document.getElementById('dashboard-view').classList.add('hidden');
+                document.getElementById('arena-view').classList.remove('hidden');
+                
+                // Setup State
+                state.participants = [{ ...state.currentUser, score: 0 }];
+                state.problem = problem;
+                state.timeLeft = 900;
+                
+                // Add Bots
+                const botCount = Math.floor(Math.random() * 5) + 2;
+                for(let i=0; i<botCount; i++) {
+                    const botName = BOTS[Math.floor(Math.random() * BOTS.length)];
+                    state.participants.push({ 
+                        name: botName, 
+                        score: 0, 
+                        isBot: true,
+                        avatarColor: `hsl(${Math.random() * 360}, 50%, 40%)`
+                    });
+                }
+                
+                // Setup UI
+                document.getElementById('room-code-display').textContent = `ROOM: ${state.currentRoom.code}`;
+                ui.renderProblem(problem);
+                editor.setCode(problem.template);
+                ui.updateLeaderboard();
+                ui.updateTimer();
+                
+                // Start Timers
+                state.timer = setInterval(() => {
+                    state.timeLeft--;
+                    ui.updateTimer();
+                    if(state.timeLeft <= 0) app.endGame();
+                    app.simulateBotActivity();
+                }, 1000);
+
+                ui.toast(`Joined Room ${state.currentRoom.code}`, "success");
+            },
+
+            leaveRoom: () => {
+                clearInterval(state.timer);
+                document.getElementById('arena-view').classList.add('hidden');
+                document.getElementById('dashboard-view').classList.remove('hidden');
+                state.currentRoom = null;
+                state.participants = [];
+            },
+
+            sendChat: () => {
+                const input = document.getElementById('chat-msg');
+                const text = input.value.trim();
+                if(!text) return;
+                
+                ui.addMessage(state.currentUser.name, text);
+                input.value = '';
+                
+                // Simulate bot reply randomly
+                if(Math.random() > 0.7) {
+                    setTimeout(() => {
+                        const bot = state.participants.find(p => p.isBot);
+                        if(bot) ui.addMessage(bot.name, "Any hints for problem 2?");
+                    }, 2000);
+                }
+            },
+
+            simulateBotActivity: () => {
+                // Randomly increase bot scores
+                state.participants.forEach(p => {
+                    if(p.isBot && Math.random() > 0.95) {
+                        p.score += 10 + Math.floor(Math.random() * 20);
+                        ui.updateLeaderboard();
+                    }
+                });
+            },
+            
+            endGame: () => {
+                clearInterval(state.timer);
+                ui.toast("Time's Up! Session Ended.", "error");
+                // Sort final leaderboard
+                state.participants.sort((a,b) => b.score - a.score);
+                ui.updateLeaderboard();
+            }
+        };
+
+        // --- Editor & Execution Logic ---
+        const editor = {
+            setCode: (code) => {
+                const el = document.getElementById('code-editor');
+                el.value = code;
+                editor.updateLineNumbers();
+            },
+            
+            handleTab: (e) => {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    const start = e.target.selectionStart;
+                    const end = e.target.selectionEnd;
+                    e.target.value = e.target.value.substring(0, start) + "    " + e.target.value.substring(end);
+                    e.target.selectionStart = e.target.selectionEnd = start + 4;
+                    editor.updateLineNumbers();
+                }
+            },
+
+            updateLineNumbers: () => {
+                const el = document.getElementById('code-editor');
+                const lines = el.value.split('\n').length;
+                document.getElementById('line-numbers').innerHTML = Array(lines).fill(0).map((_, i) => i + 1).join('<br>');
+            },
+
+            toggleConsole: () => {
+                document.getElementById('console-overlay').classList.toggle('open');
+            },
+
+            runCode: (isSubmission) => {
+                const code = document.getElementById('code-editor').value;
+                const consoleEl = document.getElementById('console-output');
+                consoleEl.innerHTML = '';
+                document.getElementById('console-overlay').classList.add('open');
+
+                try {
+                    // Safety: Basic validation only. In real prod, use WebAssembly backend.
+                    // We wrap user code to extract the 'solution' function
+                    // Note: We replace the 'function solution' declaration to allow execution within scope
+                    const funcMatch = code.match(/function\s+solution\s*\(([^)]*)\)\s*\{([\s\S]*)\}/);
+                    
+                    if (!funcMatch) {
+                        throw new Error("Function 'solution' not found. Please use the template.");
+                    }
+
+                    const params = funcMatch[1];
+                    const body = funcMatch[2];
+                    
+                    // Create the function
+                    const userFunc = new Function(params, body);
+
+                    // Run tests
+                    let passedCount = 0;
+                    const totalCases = state.problem.cases.length;
+                    
+                    // Log start
+                    ui.logConsole(`Running ${totalCases} test cases...`, 'text-muted');
+
+                    state.problem.cases.forEach((c, index) => {
+                        try {
+                            const inputArgs = eval(`[${c.input}]`); // Convert string "[1,2]" to array
+                            const startT = performance.now();
+                            const result = userFunc(...inputArgs);
+                            const endT = performance.now();
+                            const duration = (endT - startT).toFixed(2);
+                            
+                            // Check result (loose equality for simplicity)
+                            if (result == c.expected) {
+                                ui.logConsole(`Test Case ${index+1}: Passed (${duration}ms)`, 'test-pass');
+                                passedCount++;
+                            } else {
+                                ui.logConsole(`Test Case ${index+1}: Failed (Expected ${c.expected}, got ${result})`, 'test-fail');
+                            }
+                        } catch (err) {
+                            ui.logConsole(`Test Case ${index+1}: Runtime Error - ${err.message}`, 'test-fail');
+                        }
+                    });
+
+                    // Submission Logic
+                    if (isSubmission) {
+                        if (passedCount === totalCases) {
+                            // Score Calculation
+                            // Base 1000 - (Time taken factor) - (Code length factor)
+                            const timePenalty = Math.floor(state.timeLeft / 10); // Lower time left = lower bonus
+                            const lengthPenalty = code.length * 0.1;
+                            const score = Math.floor(1000 - lengthPenalty);
+                            
+                            const userObj = state.participants.find(p => p.name === state.currentUser.name);
+                            if (userObj) {
+                                // Only update if better score
+                                if (score > userObj.score) {
+                                    userObj.score = score;
+                                    ui.toast(`New High Score: ${score}`, "success");
+                                    ui.updateLeaderboard();
+                                } else {
+                                    ui.toast(`Submission passed, but score (${score}) not higher than existing.`, "info");
+                                }
+                            }
+                        } else {
+                            ui.toast("Submission Failed. Fix errors before submitting.", "error");
+                        }
+                    }
+
+                } catch (e) {
+                    ui.logConsole("Syntax Error: " + e.message, 'test-fail');
+                }
+            }
+        };
+
+        // --- UI Helpers ---
+        const ui = {
+            toast: (msg, type = 'info') => {
+                const container = document.getElementById('toast-container');
+                const el = document.createElement('div');
+                el.className = 'toast';
+                el.style.borderLeftColor = type === 'success' ? 'var(--success)' : (type === 'error' ? 'var(--danger)' : 'var(--accent-primary)');
+                el.textContent = msg;
+                container.appendChild(el);
+                setTimeout(() => el.remove(), 3000);
+            },
+
+            renderProblem: (prob) => {
+                const html = `
+                    <h3>${prob.title} <span style="font-size:0.6em; background:var(--bg-input); padding:2px 6px; border-radius:4px; color:var(--text-muted)">${prob.difficulty}</span></h3>
+                    <p>${prob.description}</p>
+                    <div style="background:rgba(0,0,0,0.2); padding:10px; border-radius:4px;">
+                        <strong>Function Signature:</strong><br>
+                        <code style="color:var(--accent-secondary)">function solution(${prob.template.match(/\(([^)]*)\)/)[1]})</code>
+                    </div>
+                `;
+                document.getElementById('problem-description').innerHTML = html;
+            },
+
+            logConsole: (msg, className) => {
+                const box = document.getElementById('console-output');
+                const line = document.createElement('div');
+                line.className = className;
+                line.textContent = "> " + msg;
+                box.appendChild(line);
+                box.scrollTop = box.scrollHeight;
+            },
+
+            updateLeaderboard: () => {
+                const list = document.getElementById('leaderboard');
+                document.getElementById('participant-count').textContent = `${state.participants.length}/20`;
+                
+                // Sort by score desc
+                const sorted = [...state.participants].sort((a,b) => b.score - a.score);
+                
+                list.innerHTML = sorted.map((p, i) => {
+                    const isMe = p.name === state.currentUser.name ? 'me' : '';
+                    const avatar = `<div style="width:20px; height:20px; border-radius:50%; background:${p.avatarColor}; margin-right:8px;"></div>`;
+                    return `
+                        <li class="leaderboard-item ${isMe}">
+                            <div class="flex items-center">
+                                <span class="rank">${i+1}</span>
+                                ${avatar}
+                                <span>${p.name} ${p.isBot ? '(Bot)' : ''}</span>
+                            </div>
+                            <span class="text-success" style="font-weight:bold">${p.score}</span>
+                        </li>
+                    `;
+                }).join('');
+            },
+
+            updateTimer: () => {
+                const m = Math.floor(state.timeLeft / 60).toString().padStart(2, '0');
+                const s = (state.timeLeft % 60).toString().padStart(2, '0');
+                document.getElementById('timer-display').textContent = `${m}:${s}`;
+            },
+
+            addMessage: (user, text) => {
+                const box = document.getElementById('chat-box');
+                const div = document.createElement('div');
+                div.className = 'message';
+                div.innerHTML = `<strong>${user}:</strong> ${text}`;
+                box.appendChild(div);
+                box.scrollTop = box.scrollHeight;
+            }
+        };
+
+        // Initialize
+        window.onload = () => {
+            editor.updateLineNumbers();
+            app.init();
+        };
+
+    </script>
+</body>
+</html>
